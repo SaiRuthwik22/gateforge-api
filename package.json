@@ -1,0 +1,26 @@
+{
+  "name": "gateforge-api",
+  "version": "1.0.0",
+  "description": "GATEForge main API — serves pre-generated GATE CS questions",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "prisma:generate": "npx prisma generate",
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:deploy": "npx prisma migrate deploy"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^10.0.2",
+    "@google/generative-ai": "^0.24.1",
+    "@prisma/client": "^6.4.1",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.1",
+    "ioredis": "^5.4.2",
+    "uuid": "^11.1.0",
+    "zod": "^3.24.2",
+    "prisma": "^6.4.1"
+  }
+}

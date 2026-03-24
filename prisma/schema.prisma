@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ──────────────────────────────────────────────────────────────────
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+enum QuestionType {
+  MCQ
+  MSQ
+  NAT
+}
+
+enum JobStatus {
+  pending
+  in_progress
+  done
+  failed
+}
+
+enum AttemptStatus {
+  in_progress
+  completed
+  expired
+  abandoned
+}
+
+// ─── QUESTIONS ──────────────────────────────────────────────────────────────
+
+model Question {
+  id            String       @id @default(uuid())
+  set_number    Int
+  subject       String
+  topic         String?
+  subtopic      String?
+  difficulty    Difficulty
+  marks         Int          // 1 or 2
+  question_type QuestionType
+  question_text String       @db.Text
+  options       Json?        // {A, B, C, D} for MCQ/MSQ, null for NAT
+  correct_answer String
+  explanation   String       @db.Text
+  key_refs      Json?        // Array of string references
+  youtube_queries Json?      // Array of string search queries
+  diagram       Json?        // {type: "mermaid"|"svg", data: "..."} or null
+  negative_marks Float       @default(0)
+  validated     Boolean      @default(false)
+  is_staged     Boolean      @default(true) // true = staging, false = live
+  generated_by  String?      // "gemini-2.5-pro" etc
+  generated_at  DateTime     @default(now())
+  is_active     Boolean      @default(true)
+  used_count    Int          @default(0)
+
+  @@map("questions")
+}
+
+// ─── MOCK SETS ──────────────────────────────────────────────────────────────
+
+model MockSet {
+  id                String    @id @default(uuid())
+  set_number        Int       @unique
+  title             String
+  total_questions   Int       @default(65)
+  total_marks       Int       @default(100)
+  is_ready          Boolean   @default(false)
+  generated_date    DateTime?
+  subject_breakdown Json?     // {subject: questionCount} map
+
+  @@map("mock_sets")
+}
+
+// ─── GENERATION JOBS ────────────────────────────────────────────────────────
+
+model GenerationJob {
+  id                  String    @id @default(uuid())
+  set_number          Int
+  subject             String
+  status              JobStatus @default(pending)
+  model_used          String?
+  questions_target    Int
+  questions_generated Int       @default(0)
+  attempts            Int       @default(0)
+  started_at          DateTime?
+  completed_at        DateTime?
+  error_log           String?   @db.Text
+
+  @@map("generation_jobs")
+}
+
+// ─── BROWSER ATTEMPTS ───────────────────────────────────────────────────────
+
+model BrowserAttempt {
+  id              String        @id @default(uuid())
+  browser_id      String        // from permanent cookie
+  set_number      Int
+  attempt_date    String        // "2026-03-16" (IST date string)
+  status          AttemptStatus @default(in_progress)
+  started_at      DateTime
+  completed_at    DateTime?
+  time_taken_secs Int?
+  score           Float?
+  correct_count   Int?
+  wrong_count     Int?
+  skipped_count   Int?
+  answers         Json?         // { questionId: selectedOption }
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+
+  @@unique([browser_id, set_number, attempt_date])
+  @@map("browser_attempts")
+}
