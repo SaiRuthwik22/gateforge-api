@@ -48,10 +48,16 @@ Do not act like a robot reading a prompt; act like a friendly human professor tu
       let lastErr = null;
 
       // Map frontend messages { role: 'user'|'assistant', content: string } to Gemini format
-      const geminiHistory = messages.slice(0, -1).map(m => ({
+      // Gemini requires history to start with a 'user' turn — strip any leading assistant messages
+      // (the frontend sends an initial greeting like "Hello, how can I help you?" which would otherwise crash Gemini)
+      const rawHistory = messages.slice(0, -1).map(m => ({
         role: m.role === 'user' ? 'user' : 'model',
         parts: [{ text: m.content }]
       }));
+
+      // Drop leading 'model' messages so history starts with 'user'
+      const firstUserIdx = rawHistory.findIndex(m => m.role === 'user');
+      const geminiHistory = firstUserIdx >= 0 ? rawHistory.slice(firstUserIdx) : [];
       
       const lastMessage = messages[messages.length - 1].content;
 
@@ -86,6 +92,7 @@ Do not act like a robot reading a prompt; act like a friendly human professor tu
       }
     } catch (err) {
       console.error('[Chat] Gemini AI failed:', err.message);
+      console.error('[Chat] Error details:', err.status || 'no-status', err.statusText || 'no-statusText');
       return reply.status(500).send({ error: 'AI tutor temporarily unavailable.' });
     }
   });
